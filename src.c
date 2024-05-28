@@ -1,330 +1,130 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include<stdio.h>
-#include<stdlib.h>
 #include<string.h>
+#include<stdlib.h>
 
+typedef struct Quiz Quiz;
+typedef struct Heap Heap;
+struct Quiz {
+	char* numeMaterie;
+	int grileGresite;
 
-
-typedef struct Librarie Librarie;
-typedef struct Nod Nod;
-typedef struct NodLi NodLi;
-typedef struct ListaDubla ListaDubla;
-
-struct Librarie {
-	int id;
-	char* numeLibrarie;
-	int nrStrazii;
 };
 
-Librarie initLibrarie(int id, const char* numeLibrarie, int nrStrazii) {
-	Librarie librarie;
-	librarie.id = id;
-	librarie.numeLibrarie = (char*)malloc(strlen(numeLibrarie) + 1);
-	strcpy(librarie.numeLibrarie, numeLibrarie);
-	librarie.nrStrazii = nrStrazii;
-	return librarie;
-}
-
-struct Nod {
-	Librarie info;
-	Nod* prev;
-	Nod* next;
-};
-struct ListaDubla {
-	Nod* cap;
-	Nod* coada;
+struct Heap {
+	Quiz* vector;
+	int dimensiune;
+	int dimensiuneTotala;
 };
 
+Quiz initializareQuiz(const char* numeMaterie, int grileGresite) {
+	Quiz  quiz;
+	quiz.numeMaterie = (char*)malloc(strlen(numeMaterie) + 1);
+	strcpy(quiz.numeMaterie, numeMaterie);
+	quiz.grileGresite = grileGresite;
+	return quiz;
+}
+Heap initializareHeap(int dim) {
+	Heap heap;
+	heap.dimensiuneTotala = dim;
+	heap.dimensiune = 0;
+	heap.vector = (Quiz*)malloc(sizeof(Quiz) * dim);
+	return heap;
 
-
-void dezalocaNod(Nod** nod) {
-	while (*nod != NULL) {
-		free((*nod)->info.numeLibrarie);
-		*nod = (*nod)->next;
-	}
-	free(*nod);
-	*nod = NULL;
 }
 
-void insereazaNodLaInceput(Nod** nodul, Librarie l) {
-	Nod* primul = (Nod*)malloc(sizeof(Nod));
-	primul->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);//deep copy
-	
-	if (*nodul == NULL) {
-		primul->next = NULL;
-		*nodul = primul;
+Heap adaugareQuizInHeap(Quiz quiz,Heap heap) {
+	if (heap.dimensiune < heap.dimensiuneTotala) {
+		heap.vector[heap.dimensiune] = quiz;//shallow copy
+		heap.dimensiune++;
+		
+		//TO DO FILTRARE
+
 	}
-	else {
-		primul->next = *nodul;
-		*nodul = primul;
-	}
+	return heap;
 }
-
-void insereazaNodLaFinal(Nod** nodul,Librarie l) {
-	Nod* ultimul = (Nod*)malloc(sizeof(Nod));
-	ultimul->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-	ultimul->next = NULL;
-	if (*nodul != NULL) {
-			while ((*nodul)->next != NULL) {
-				*nodul = (*nodul)->next;
-
-			}
-	}
-	else {
-		(*nodul)= ultimul;
-	}
-
+void afisareQuiz(Quiz q) {
+	printf("La quiz-ul de la materie %s sunt %d grile gresite\n", q.numeMaterie, q.grileGresite);
 	
 }
+void afisareHeap(Heap h) {
+	for (int i = 0; i < h.dimensiune; i++)afisareQuiz(h.vector[i]);
+}
 
-void afiseazaLibrarie(Librarie librarie) {
-	printf("Libraria %s are id-ul %d si este pe strada cu nr %d\n", librarie.numeLibrarie, librarie.id, librarie.nrStrazii);
+void afisareTotalaHeap(Heap h) {
+	for (int i = 0; i < h.dimensiuneTotala; i++)afisareQuiz(h.vector[i]);
+}
+
+void filtreazaHeap(Heap heap, int pozRadacina) {
+	int nodSt = pozRadacina * 2 + 1;
+	int nodDr = pozRadacina * 2 + 2;
+	int pozMin = pozRadacina;
+	if (nodSt < heap.dimensiune && heap.vector[nodSt].grileGresite < heap.vector[pozMin].grileGresite) {
+		pozMin = nodSt;
+	}
+	if (nodDr < heap.dimensiune && heap.vector[nodDr].grileGresite < heap.vector[pozMin].grileGresite) {
+		pozMin = nodDr;
+	}
+	if (pozMin != pozRadacina) {
+		Quiz aux;
+		aux = heap.vector[pozRadacina];
+		heap.vector[pozRadacina] = heap.vector[pozMin];
+		heap.vector[pozMin] = aux;
+		if (pozMin * 2 + 1 < heap.dimensiune - 1)//
+			filtreazaHeap(heap, pozMin);
+	}
 
 }
-void afiseazaNodul(Nod* nodul) {
-	while (nodul != NULL) {
-		if (nodul != NULL) {
-			afiseazaLibrarie((nodul)->info);
-			nodul = (nodul)->next;
+
+void extragereMinim(Heap *heap) {
+	if (heap->dimensiune > 0) {
+		Quiz aux;
+		aux = heap->vector[0];
+		heap->vector[0] = heap->vector[heap->dimensiune - 1];
+		heap->vector[heap->dimensiune - 1] = aux;
+		heap->dimensiune--;
+
+		for (int i = (heap->dimensiune) / 2 - 1; i >= 0; i--) {
+			filtreazaHeap(*heap, i);
 		}
-		
-	}
-}
-
-
-int librariiEgale(Librarie l1, Librarie l2) {
-	int ok = 1;
-	if (l1.id != l2.id || strcmp(l1.numeLibrarie, l2.numeLibrarie) != 0 || l1.nrStrazii != l2.nrStrazii)ok = 0;
-	return ok;
-}
-void stergeLibrarie(Nod** nodul,Librarie l) {
-	Nod* aux = *nodul;
-	while ((*nodul) != NULL) {
-		if (librariiEgale((*nodul)->info,l)==1){
-			free((aux)->info.numeLibrarie);
-			//free(aux);
-			if ((*nodul)->next == NULL) {
-				free(*nodul);
-				printf("\nhi");
-			}
-			else {
-				*nodul = (*nodul)->next;
-				printf("\nhi else");
-			}
-			printf("\nhi ---");
-		}
-		else {
-			*nodul = (*nodul)->next;
-		}
-		
+		return aux;
 	}
 
 }
-
-Nod* adaugaLibrarieDupaUnaData(Nod* nodul, Librarie l1, Librarie l2) {
-	Nod* aux = nodul;
-	while (aux != NULL) {
-		if (librariiEgale(aux->info, l1)) {
-			Nod* nodNou = (Nod*)malloc(sizeof(Nod));
-			nodNou->info = initLibrarie(l2.id, l2.numeLibrarie, l2.nrStrazii);
-			nodNou->next = aux->next;
-			aux->next = nodNou;
-			return nodul; // Returnează lista nemodificată
-		}
-		aux = aux->next;
+void dezalocareHeap(Heap *heap) {
+	for (int i = 0; i < heap->dimensiuneTotala; i++) {
+		free(heap->vector[i].numeMaterie);
 	}
-	return nodul; // Returnează lista nemodificată dacă nu s-a găsit l1
+	free(heap->vector);
+	heap->dimensiune = 0;
+	heap->dimensiuneTotala = 0;
 }
-
-
-
-
-
-
-//Nod* adaugaLibrarieUnaDupaAlta(Nod* nodul, Librarie l1, Librarie l2) {
-//	Nod* aux = nodul;
-//}
-//
-//struct NodLi {
-//	Nod* primul;
-//	Nod* ultimul;
-//};
-//
-//
-//
-//void adaugaNodFinal(NodLi **nodul, Librarie l) {
-//	if ((*nodul)->primul==NULL && (*nodul)->ultimul==NULL) {
-//		Nod* noul = (Nod*)malloc(sizeof(Nod));
-//		noul->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-//		noul->next = NULL;
-//		
-//		(*nodul)->primul = noul;
-//		(*nodul)->primul->next = (*nodul)->ultimul;
-//		(*nodul)->ultimul = noul;
-//	}
-//	else if ((*nodul)->primul != NULL && (*nodul)->ultimul != NULL) {
-//		Nod* noul = (Nod*)malloc(sizeof(Nod));
-//		noul->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-//		noul->next = NULL;
-//		NodLi* aux = *nodul;
-//		printf("\n-----hi");
-//		//(*nodul)->primul->next = noul;
-//		(*nodul)->ultimul = noul;
-//		(*nodul)->ultimul->next = noul;
-//	}
-//}
-//
-//void adaugaNodFinall(NodLi** nodul, Librarie l) {
-//	Nod* noul = (Nod*)malloc(sizeof(Nod));
-//	noul->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-//	noul->next = NULL;
-//
-//	if ((*nodul)->primul == NULL && (*nodul)->ultimul == NULL) {
-//		// Lista este goală
-//		(*nodul)->primul = noul;
-//		(*nodul)->ultimul = noul;
-//	}
-//	else {
-//		// Lista nu este goală
-//		(*nodul)->ultimul->next = noul;
-//		(*nodul)->ultimul = noul;
-//	}
-//}
-//
-//void adaugaNodInceput(NodLi** nodul, Librarie l) {
-//	Nod* noul = (Nod*)malloc(sizeof(Nod));
-//	noul->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-//	noul->next = NULL;
-//	if ((*nodul)->primul == NULL && (*nodul)->ultimul == NULL) {
-//		(*nodul)->primul = noul;
-//		(*nodul)->ultimul = noul;
-//	}
-//	else {
-//		Nod* prim = (*nodul)->primul;
-//		(*nodul)->primul->next = noul;
-//		(*nodul)->primul
-//	}
-//}
-
-//void afiseazaListaDublu(NodLi* nodul) {
-//	while (nodul->primul != NULL) {
-//		afiseazaLibrarie((nodul->primul)->info);
-//		nodul->primul = nodul->primul->next;
-//	}
-//}
-
-void afiseazaListaDubla(ListaDubla lista) {
-	while ((lista).cap) {
-		afiseazaLibrarie((lista).cap->info);
-		(lista).cap = (lista).cap->next;
-	}
-}
-
-void afiseazaLista(ListaDubla lista) {
-	while ((lista.cap)) {
-		afiseazaLibrarie((lista).cap->info);
-		lista.cap = (lista).cap->next;
-	}
-}
-
-void adaugaNodLaInceput(ListaDubla* lista, Librarie l) {
-	Nod* nod = (Nod*)malloc(sizeof(Nod));
-	nod->prev = NULL;
-	nod->next = (lista)->cap;
-	nod->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-
-	if ((lista)->cap == NULL) {
-
-		(lista)->coada = nod;
-	}
-	else {
-		(lista)->cap->prev = nod;
-	}
-	(lista)->cap = nod;
-}
-
-
-void adaugaNodLaFinal(ListaDubla* lista, Librarie l) {
-	Nod* nod = (Nod*)malloc(sizeof(Nod));
-	nod->prev = (lista)->coada;
-	nod->next = NULL;
-	nod->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-	if (lista->coada == NULL) {
-		lista->cap = nod;
-	}
-	else {
-		lista->coada->next = nod;
-		//lista->coada->prev=lista->coada->
-	}
-
-	lista->coada = nod;
-}
-
-char* afiseazaLibrariaCuCelMaiMareId(ListaDubla list) {
-	if (list.cap == NULL) {
-		return "-";
-	}
-	else {
-		char* c = malloc(strlen("-") + 1); strcpy(c, "-");
-
-		int max = 0;
-		while (list.cap!=NULL) {
-			if (max < list.cap->info.id) {
-				max = list.cap->info.id;
-				free(c);
-				c = malloc(strlen(list.cap->info.numeLibrarie) + 1);
-				strcpy(c, list.cap->info.numeLibrarie);
-			}
-			list.cap = list.cap->next;
-		}
-		return c;
-	}
-}
-
-void adaugaNodLaInceput2(ListaDubla* lista, Librarie l) {
-	Nod* nod = (Nod*)malloc(sizeof(Nod));
-	nod->prev = NULL;
-	nod->next = (lista->cap);
-	nod->info = initLibrarie(l.id, l.numeLibrarie, l.nrStrazii);
-	if ((lista)->cap == NULL) {
-		lista->coada = nod;
-	}
-	else {
-		lista->cap->prev = nod;
-	}
-
-	lista->cap = nod;
-}
-void dezalocaListaDubla(ListaDubla* lista) {
-	while ((lista)->cap != NULL) {
-		free(lista->cap->info.numeLibrarie);
-		free(lista->cap->prev);
-		lista->cap = lista->cap->next;
-	}
-}
-
-
-
 void main() {
-	Librarie l1 = initLibrarie(1, "Carturesti", 20);
-	Librarie l2 = initLibrarie(2, "Humanitas", 21);
-	Librarie l4 = initLibrarie(4, "M E", 23);
-	Librarie l3 = initLibrarie(3, "Mihai Eminescu", 22);
+	Heap heap;
+	/*Quiz q1 = initializareQuiz("SDD", 3);
+	Quiz q2 = initializareQuiz("PEAG", 7);
+	Quiz q3 = initializareQuiz("SDD", 5);
+	Quiz q4 = initializareQuiz("SDD", 2);
+	Quiz q5 = initializareQuiz("SDD", 9);
+	Quiz q6 = initializareQuiz("SDD", 4);*/
+	heap = initializareHeap(6);
 
+	heap.vector[0] = initializareQuiz("sdd", 3);
+	heap.vector[1] = initializareQuiz("java", 7);
+	heap.vector[2] = initializareQuiz("c++", 5);
+	heap.vector[3] = initializareQuiz("peag", 2);
+	heap.vector[4] = initializareQuiz("sgbd", 9);
+	heap.vector[5] = initializareQuiz("atp", 4);
 
-
-	ListaDubla lista;
-	lista.cap = NULL;
-	lista.coada = NULL;
-	adaugaNodLaInceput(&lista, l1);
-	adaugaNodLaFinal(&lista, l2);
-	adaugaNodLaFinal(&lista, l3);
-	
-	//adaugaNodLaInceput2(&lista, l3);
-	afiseazaListaDubla(lista);
-	char* nume = afiseazaLibrariaCuCelMaiMareId(lista);
-	printf("%s ", nume);
-	dezalocaListaDubla(&lista);
-	free(nume);
-	afiseazaLista(lista);
+	heap.dimensiune = 6;
+	afisareHeap(heap);
+	//filtreazaHeap(heap, 0);
+	//afisareHeap(heap);
+	//for (int i = heap.dimensiune / 2 - 1; i >= 0;i--) {
+	//	filtreazaHeap(heap, i);
+	//}
+	dezalocareHeap(&heap);
+	printf("\n\n");
+	afisareHeap(heap);
+	//adaugareQuizInHeap()
 }
